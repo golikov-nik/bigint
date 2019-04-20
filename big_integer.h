@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <limits>
 
 using digit_t = uint32_t;
 using overflow_t = uint64_t;
