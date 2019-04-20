@@ -258,7 +258,7 @@ std::pair<big_integer, big_integer> divmod(big_integer a, big_integer b) {
         r += a.data[i];
         overflow_t divi = (to_overflow_t(r.digit_at(b.data.size())) << DIGITS) | r.digit_at(b.data.size() - 1);
         digit_t quo = to_digit_t(divi / b.data.back());
-        r -= b * quo;
+        r -= multiply_by_digit(b, quo);
         while (r.is_negative()) {
             r += b;
             quo--;
