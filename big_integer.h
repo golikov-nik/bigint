@@ -119,7 +119,7 @@ private:
 
     bool is_negative() const;
 
-    friend big_integer multiply_by_digit(big_integer a, digit_t b);
+    friend big_integer multiply_by_digit(big_integer const& a, digit_t b);
 };
 
 #endif // CPP_HOMEWORKS_BIG_INTEGER_H

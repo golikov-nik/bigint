@@ -198,15 +198,17 @@ big_integer big_integer::abs() const {
 }
 
 //  both numbers are non-negative
-big_integer multiply_by_digit(big_integer a, digit_t b) {
+big_integer multiply_by_digit(big_integer const& a, digit_t b) {
+    big_integer result;
+    result.assure_size(a.size());
     digit_t carry = 0;
     for (size_t i = 0; i < a.size(); i++) {
         overflow_t product = to_overflow_t(a.data[i]) * b + carry;
-        a.data[i] = to_digit_t(product);
+        result.data[i] = to_digit_t(product);
         carry = to_digit_t(product >> DIGITS);
     }
-    a.data.push_back(carry);
-    return a.strip();
+    result.data.push_back(carry);
+    return result.strip();
 }
 
 big_integer operator*(big_integer a, big_integer b) {
