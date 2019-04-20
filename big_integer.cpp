@@ -217,7 +217,6 @@ big_integer operator*(big_integer a, big_integer b) {
     b = b.abs();
     if (b.size() > a.size()) {
         a.data.swap(b.data);
-        std::swap(a.sign, b.sign);
     }
     big_integer result;
     for (digit_t digit : b.data) {
