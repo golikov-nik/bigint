@@ -295,6 +295,9 @@ big_integer& big_integer::operator>>=(int rhs) {
     if (rhs < 0) {
         return *this <<= (-rhs);
     }
+    if (rhs == 0) {
+        return *this;
+    }
     data.erase(data.begin(), data.begin() + std::min<size_t>(data.size(), rhs / DIGITS));
     digit_t carry = sign;
     unsigned left = rhs % DIGITS;
