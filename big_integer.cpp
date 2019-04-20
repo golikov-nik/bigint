@@ -39,16 +39,29 @@ big_integer::big_integer(std::string const& str) : big_integer() {
     }
 }
 
-big_integer& big_integer::operator+=(big_integer const& rhs) {
+big_integer& big_integer::add_sub(big_integer const& rhs, bool add) {
     assure_size(std::max(size(), rhs.size()) + 2);
     bool carry = false;
     for (size_t i = 0; i < size(); i++) {
-        overflow_t sum = to_overflow_t(data[i]) + rhs.digit_at(i) + carry;
-        data[i] = to_digit_t(sum);
-        carry = sum > MAX_DIGIT;
+        overflow_t temp = data[i];
+        if (add) {
+            (temp += rhs.digit_at(i)) += carry;
+        } else {
+            (temp -= rhs.digit_at(i)) -= carry;
+        }
+        data[i] = to_digit_t(temp);
+        carry = temp > MAX_DIGIT;
     }
     sign = data.back();
     return strip();
+}
+
+big_integer& big_integer::operator+=(big_integer const& rhs) {
+    return add_sub(rhs, true);
+}
+
+big_integer& big_integer::operator-=(big_integer const& rhs) {
+    return add_sub(rhs, false);
 }
 
 big_integer& big_integer::strip() {
@@ -70,12 +83,9 @@ bool operator==(big_integer const& a, big_integer const& b) {
     return a.sign == b.sign && a.data == b.data;
 }
 
-big_integer& big_integer::operator-=(big_integer const& rhs) {
-    return *this += -rhs;
-}
-
 big_integer big_integer::operator-() const {
-    return ~*this + 1;
+    big_integer temp = ~*this;
+    return temp += 1;
 }
 
 big_integer big_integer::operator+() const {
@@ -200,19 +210,19 @@ big_integer big_integer::abs() const {
 //  both numbers are non-negative
 big_integer multiply_by_digit(big_integer const& a, digit_t b) {
     big_integer result;
-    result.assure_size(a.size());
+    result.assure_size(a.size() + 1);
     digit_t carry = 0;
     for (size_t i = 0; i < a.size(); i++) {
         overflow_t product = to_overflow_t(a.data[i]) * b + carry;
         result.data[i] = to_digit_t(product);
         carry = to_digit_t(product >> DIGITS);
     }
-    result.data.push_back(carry);
+    result.data.back() = carry;
     return result.strip();
 }
 
 big_integer operator*(big_integer a, big_integer b) {
-    digit_t result_sign = a.sign ^ b.sign;
+    digit_t result_sign = a.sign ^b.sign;
     a = a.abs();
     b = b.abs();
     if (b.size() > a.size()) {
@@ -246,7 +256,7 @@ std::pair<big_integer, big_integer> divmod(big_integer a, big_integer b) {
     if (b == 0) {
         throw std::invalid_argument("division by zero");
     }
-    digit_t q_sign = a.sign ^ b.sign;
+    digit_t q_sign = a.sign ^b.sign;
     digit_t r_sign = a.sign;
     a = a.abs();
     b = b.abs();

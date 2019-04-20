@@ -32,6 +32,8 @@ struct big_integer {
 
     big_integer& operator-=(big_integer const& rhs);
 
+    big_integer& add_sub(big_integer const& rhs, bool add);
+
     big_integer& operator*=(big_integer const& rhs);
 
     big_integer& operator/=(big_integer const& rhs);
