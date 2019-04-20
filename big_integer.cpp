@@ -272,17 +272,19 @@ big_integer& big_integer::set_sign(digit_t new_sign) {
 }
 
 big_integer& big_integer::operator<<=(int rhs) {
-    if (rhs <= 0) {
+    if (rhs < 0) {
         return *this >>= (-rhs);
     }
     data.insert(data.begin(), rhs / DIGITS, 0);
     data.push_back(sign);
     digit_t carry = 0;
     unsigned left = rhs % DIGITS;
-    for (size_t i = 0; i < size(); i++) {
-        std::tie(data[i], carry) = std::make_pair(
-                (data[i] << left) | carry, data[i] >> (DIGITS - left)
-        );
+    if (left != 0) {
+        for (size_t i = 0; i < size(); i++) {
+            std::tie(data[i], carry) = std::make_pair(
+                    (data[i] << left) | carry, data[i] >> (DIGITS - left)
+            );
+        }
     }
     return strip();
 }
@@ -295,16 +297,15 @@ big_integer& big_integer::operator>>=(int rhs) {
     if (rhs < 0) {
         return *this <<= (-rhs);
     }
-    if (rhs == 0) {
-        return *this;
-    }
     data.erase(data.begin(), data.begin() + std::min<size_t>(data.size(), rhs / DIGITS));
     digit_t carry = sign;
     unsigned left = rhs % DIGITS;
-    for (size_t i = size(); i-- > 0;) {
-        std::tie(data[i], carry) = std::make_pair(
-                (carry << (DIGITS - left)) | (data[i] >> left), data[i] & ((1u << left) - 1)
-        );
+    if (left != 0) {
+        for (size_t i = size(); i-- > 0;) {
+            std::tie(data[i], carry) = std::make_pair(
+                    (carry << (DIGITS - left)) | (data[i] >> left), data[i] & ((1u << left) - 1)
+            );
+        }
     }
     return strip();
 }
