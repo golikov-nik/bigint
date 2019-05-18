@@ -46,29 +46,32 @@ big_integer::big_integer(std::string const& str) : big_integer() {
   }
 }
 
-big_integer& big_integer::add_sub(big_integer const& rhs, bool add) {
+template <bool add>
+big_integer& big_integer::add_sub(big_integer const& rhs) {
   assure_size(std::max(size(), rhs.size()));
   bool carry = false;
+  digit_t* data_ptr = data.data();
+  digit_t const* rhs_ptr = rhs.data.data();
   for (size_t i = 0; i < size(); i++) {
-    overflow_t temp = data[i];
+    overflow_t temp = data_ptr[i];
     if (add) {
-      (temp += rhs.digit_at(i)) += carry;
+      (temp += (i < rhs.size() ? rhs_ptr[i] : rhs.sign)) += carry;
     } else {
-      (temp -= rhs.digit_at(i)) -= carry;
+      (temp -= (i < rhs.size() ? rhs_ptr[i] : rhs.sign)) -= carry;
     }
-    data[i] = to_digit_t(temp);
+    data_ptr[i] = to_digit_t(temp);
     carry = temp > MAX_DIGIT;
   }
-  overflow_t one_more_ot = digit_at(size());
+  overflow_t one_more_ot = sign;
   if (add) {
-    (one_more_ot += rhs.digit_at(size())) += carry;
+    (one_more_ot += rhs.sign) += carry;
   } else {
-    (one_more_ot -= rhs.digit_at(size())) -= carry;
+    (one_more_ot -= rhs.sign) -= carry;
   }
   digit_t one_more = to_digit_t(one_more_ot);
   carry = one_more_ot > MAX_DIGIT;
-  sign = add ? digit_at(size() + 1) + rhs.digit_at(size() + 1) + carry :
-         digit_at(size() + 1) - rhs.digit_at(size() + 1) - carry;
+  sign = add ? sign + rhs.sign + carry :
+         sign - rhs.sign - carry;
   if (one_more != sign) {
     data.push_back(one_more);
   }
@@ -76,11 +79,11 @@ big_integer& big_integer::add_sub(big_integer const& rhs, bool add) {
 }
 
 big_integer& big_integer::operator+=(big_integer const& rhs) {
-  return add_sub(rhs, true);
+  return add_sub<true>(rhs);
 }
 
 big_integer& big_integer::operator-=(big_integer const& rhs) {
-  return add_sub(rhs, false);
+  return add_sub<false>(rhs);
 }
 
 big_integer& big_integer::strip() {
@@ -114,8 +117,9 @@ big_integer big_integer::operator+() const {
 big_integer big_integer::operator~() const {
   big_integer copy = *this;
   copy.sign ^= MAX_DIGIT;
+  digit_t* copy_data = copy.data.data();
   for (size_t i = 0; i < size(); i++) {
-    copy.data[i] ^= MAX_DIGIT;
+    copy_data[i] ^= MAX_DIGIT;
   }
   return copy;
 }
@@ -152,8 +156,9 @@ big_integer& big_integer::apply_bitwise_op(big_integer const& rhs,
                                            std::function<digit_t(digit_t,
                                                                  digit_t)> const& op) {
   assure_size(rhs.size());
+  digit_t* data_ptr = data.data();
   for (size_t i = 0; i < size(); i++) {
-    data[i] = op(data[i], rhs.digit_at(i));
+    data_ptr[i] = op(data[i], rhs.digit_at(i));
   }
   sign = op(sign, rhs.sign);
   return strip();
@@ -202,9 +207,11 @@ bool operator<(big_integer const& a, big_integer const& b) {
   if (a.size() != b.size()) {
     return (a.size() < b.size()) ^ a.is_negative();
   }
+  digit_t const* a_ptr = a.data.data();
+  digit_t const* b_ptr = b.data.data();
   for (size_t i = a.size(); i-- > 0;) {
-    if (a.data[i] != b.data[i]) {
-      return a.data[i] < b.data[i];
+    if (a_ptr[i] != b_ptr[i]) {
+      return a_ptr[i] < b_ptr[i];
     }
   }
   return false;
@@ -234,10 +241,12 @@ big_integer big_integer::abs() const {
 big_integer multiply_by_digit(big_integer const& a, digit_t b) {
   big_integer result;
   result.assure_size(a.size() + 1);
+  digit_t* data_ptr = result.data.data();
+  digit_t const* a_ptr = a.data.data();
   digit_t carry = 0;
   for (size_t i = 0; i < a.size(); i++) {
-    overflow_t product = to_overflow_t(a.data[i]) * b + carry;
-    result.data[i] = to_digit_t(product);
+    overflow_t product = to_overflow_t(a_ptr[i]) * b + carry;
+    data_ptr[i] = to_digit_t(product);
     carry = to_digit_t(product >> DIGITS);
   }
   result.data.back() = carry;
@@ -251,9 +260,10 @@ big_integer operator*(big_integer a, big_integer b) {
   if (b.size() > a.size()) {
     a.data.swap(b.data);
   }
+  digit_t const* b_ptr = b.data.data();
   big_integer result;
   for (size_t i = 0; i < b.size(); i++) {
-    result += multiply_by_digit(a, b.data[i]);
+    result += multiply_by_digit(a, b_ptr[i]);
     a.data.push_front(0);
   }
   return result.set_sign(result_sign);
@@ -291,9 +301,11 @@ std::pair<big_integer, big_integer> divmod(big_integer a, big_integer b) {
   b <<= shift;
   big_integer q, r;
   q.assure_size(a.size());
+  digit_t const* a_ptr = a.data.data();
+  digit_t* q_ptr = q.data.data();
   for (size_t i = a.size(); i-- > 0;) {
     r.data.push_front(0);
-    r += a.data[i];
+    r += a_ptr[i];
     overflow_t divi = (to_overflow_t(r.digit_at(b.data.size())) << DIGITS) |
                       r.digit_at(b.data.size() - 1);
     digit_t quo = to_digit_t(divi / b.data.back());
@@ -302,7 +314,7 @@ std::pair<big_integer, big_integer> divmod(big_integer a, big_integer b) {
       r += b;
       quo--;
     }
-    q.data[i] = quo;
+    q_ptr[i] = quo;
   }
   r >>= shift;
   return {q.set_sign(q_sign).strip(), r.set_sign(r_sign)};
@@ -320,10 +332,12 @@ big_integer& big_integer::operator<<=(int rhs) {
   data.push_back(sign);
   digit_t carry = 0;
   unsigned left = rhs % DIGITS;
+  digit_t* data_ptr = data.data();
   if (left != 0) {
     for (size_t i = 0; i < size(); i++) {
-      std::tie(data[i], carry) = std::make_pair((data[i] << left) | carry,
-                                                data[i] >> (DIGITS - left));
+      std::tie(data_ptr[i], carry) = std::make_pair(
+              (data_ptr[i] << left) | carry,
+              data_ptr[i] >> (DIGITS - left));
     }
   }
   return strip();
@@ -341,10 +355,11 @@ big_integer& big_integer::operator>>=(int rhs) {
   digit_t carry = sign;
   unsigned left = rhs % DIGITS;
   if (left != 0) {
+    digit_t* data_ptr = data.data();
     for (size_t i = size(); i-- > 0;) {
-      std::tie(data[i], carry) = std::make_pair(
-              (carry << (DIGITS - left)) | (data[i] >> left),
-              data[i] & ((1u << left) - 1));
+      std::tie(data_ptr[i], carry) = std::make_pair(
+              (carry << (DIGITS - left)) | (data_ptr[i] >> left),
+              data_ptr[i] & ((static_cast<digit_t>(1) << left) - 1));
     }
   }
   return strip();

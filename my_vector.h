@@ -12,6 +12,10 @@ template <typename T>
 struct my_vector {
   explicit my_vector(T const& x);
 
+  T* data();
+
+  T const* data() const;
+
   T& operator[](size_t at);
 
   T const& operator[](size_t at) const;

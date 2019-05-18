@@ -154,8 +154,9 @@ void my_vector<T>::make_big() {
     return;
   }
   is_small = false;
-  vec = std::make_shared<std::vector<T>>(empty() ? std::vector<T>() :
-                         std::vector<T>{std::move(small)});
+  vec = std::make_shared<std::vector<T>>(empty() ? std::vector<T>()
+                                                 : std::vector<T>{
+                  std::move(small)});
 }
 
 template <typename T>
@@ -165,6 +166,17 @@ void my_vector<T>::assure_modifiable() {
   }
   std::vector<T> copy = *vec;
   vec = std::make_shared<std::vector<T>>(std::move(copy));
+}
+
+template <typename T>
+T* my_vector<T>::data() {
+  assure_modifiable();
+  return is_small ? &small : vec->data();
+}
+
+template <typename T>
+T const* my_vector<T>::data() const {
+  return is_small ? &small : vec->data();
 }
 
 

@@ -635,7 +635,7 @@ multipliers.push_back(myrand());
 big_integer accumulator = 1;
 
 for (size_t i = 0; i != number_of_multipliers; ++i)
-accumulator *= multipliers[i];
+  accumulator *= multipliers[i];
 
 std::random_shuffle(multipliers.begin(), multipliers.end());
 
