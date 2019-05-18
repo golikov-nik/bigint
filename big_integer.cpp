@@ -68,7 +68,7 @@ big_integer& big_integer::add_sub(big_integer const& rhs, bool add) {
   digit_t one_more = to_digit_t(one_more_ot);
   carry = one_more_ot > MAX_DIGIT;
   sign = add ? digit_at(size() + 1) + rhs.digit_at(size() + 1) + carry :
-          digit_at(size() + 1) - rhs.digit_at(size() + 1) - carry;
+         digit_at(size() + 1) - rhs.digit_at(size() + 1) - carry;
   if (one_more != sign) {
     data.push_back(one_more);
   }
